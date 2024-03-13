@@ -1,0 +1,70 @@
+---
+title: "Basic Wins Model"
+output: html_document
+---
+
+```{r}
+library(Lahman)
+library(dplyr)
+library(ggplot2)
+library(caret)
+```
+
+```{r}
+teams = Teams
+head(teams)
+```
+
+Exploratory Data Analysis
+
+```{r}
+teams = teams %>%
+  mutate(runs_game = R/(W+L))
+
+teams_year = teams %>%
+  group_by(yearID) %>%
+  summarize(mean_runs = mean(runs_game, na.rm = TRUE))
+
+teams_year %>%
+  ggplot(aes(x=yearID, y=mean_runs)) + 
+  geom_line() +
+  geom_point() +
+  ggtitle('Average MLB Runs By Year')
+
+head(teams_year)
+```
+
+Predictive Model Wins By Team
+
+```{r}
+df_clean = teams %>%
+  select(name,yearID, W, L, R, H, X2B, HR, SO, RA) %>%
+  filter(yearID >= 2010)
+
+head(df_clean)
+```
+
+```{r}
+lm1 = lm(W ~ R + H + X2B + HR + SO + RA, data=df_clean)
+summary(lm1)
+
+lm2 = lm(W ~ R + H + SO + RA, data=df_clean)
+summary(lm2)
+```
+
+```{r}
+preds <- predict(lm2, df_clean)
+
+df_clean$pred <- preds
+head(df_clean)
+
+RMSE(df_clean$pred, df_clean$W)
+```
+
+```{r}
+df_clean %>%
+  ggplot(aes(pred, W)) + 
+  geom_point() +
+  geom_smooth() +
+  ggtitle('Predicted Wins versus Actual')
+```
